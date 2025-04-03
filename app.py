@@ -23,6 +23,14 @@ if uploaded_file:
         opacity = st.sidebar.slider("Heatmap Opacity", min_value=0.1, max_value=1.0, value=0.6, step=0.1)
         blur = st.sidebar.slider("Heatmap Blur", min_value=1, max_value=30, value=15)
 
+        # Optional: Select intensity column if available
+        intensity_column = None
+        if "intensity" in df.columns:
+            intensity_column = "intensity"
+        else:
+            st.warning("⚠️ No intensity column found! Using uniform intensity for all points.")
+            df["intensity"] = 1  # Assign default intensity
+
         # Choose a base map layer
         basemap = st.sidebar.selectbox(
             "Choose a Base Map",
@@ -30,35 +38,4 @@ if uploaded_file:
         )
 
         # Initialize the map centered at the mean of uploaded coordinates
-        m = leafmap.Map(center=[df["latitude"].mean(), df["longitude"].mean()], zoom=10)
-
-        # Set base map
-        if basemap == "Satellite":
-            m.add_basemap("SATELLITE")
-        elif basemap == "Terrain":
-            m.add_basemap("TERRAIN")
-        elif basemap == "Dark Mode":
-            m.add_basemap("CartoDB.DarkMatter")
-        else:
-            m.add_basemap("OpenStreetMap")
-
-        # Add Heatmap layer
-        if show_heatmap:
-            m.add_heatmap(
-                data=df,
-                latitude="latitude",
-                longitude="longitude",
-                name="Heat Map",
-                radius=radius,
-                blur=blur,
-                opacity=opacity,
-            )
-
-        # Display the map in Streamlit
-        m.to_streamlit(height=600)
-
-    else:
-        st.error("⚠️ Error: The Excel file must contain 'latitude' and 'longitude' columns.")
-
-else:
-    st.info("📤 Please upload an Excel file with 'latitude' and 'longitude' columns.")
+        m = leafmap
