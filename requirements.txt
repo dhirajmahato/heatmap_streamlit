@@ -1,1 +1,3 @@
 leafmap
+pandas
+openpyxl
