@@ -15,6 +15,9 @@ if uploaded_file:
     if "latitude" in df.columns and "longitude" in df.columns:
         st.success("✅ File uploaded successfully!")
 
+        # Assign default intensity (1) since it's missing
+        df["intensity"] = 1
+
         # Initialize the map centered at the mean of uploaded coordinates
         m = leafmap.Map(center=[df["latitude"].mean(), df["longitude"].mean()], zoom=10)
 
@@ -23,6 +26,7 @@ if uploaded_file:
             data=df,
             latitude="latitude",
             longitude="longitude",
+            value="intensity",  # Use intensity column
             name="Heat Map",
             radius=20,
         )
