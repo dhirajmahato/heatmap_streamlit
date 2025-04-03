@@ -30,12 +30,12 @@ if uploaded_file:
 
         # Optional: Select intensity column if available
         if "intensity" in df.columns:
-            intensity_column = "intensity"
             df["intensity"] = pd.to_numeric(df["intensity"], errors="coerce").fillna(1)
+            intensity_column = "intensity"
         else:
             st.warning("⚠️ No intensity column found! Using uniform intensity for all points.")
             df["intensity"] = 1  # Assign default intensity
-            intensity_column = None  # Set to None to avoid passing a missing column
+            intensity_column = "intensity"  # Now always set
 
         # Choose a base map layer
         basemap = st.sidebar.selectbox("Choose a Base Map", ["OpenStreetMap", "Satellite", "Terrain", "Dark Mode"])
@@ -59,27 +59,16 @@ if uploaded_file:
         # Add Heatmap layer with error handling
         if show_heatmap:
             try:
-                if intensity_column:  # If intensity exists
-                    m.add_heatmap(
-                        data=df,
-                        latitude="latitude",
-                        longitude="longitude",
-                        value=intensity_column,
-                        name="Heat Map",
-                        radius=radius,
-                        blur=blur,
-                        opacity=opacity,
-                    )
-                else:  # If no intensity column, exclude it
-                    m.add_heatmap(
-                        data=df[["latitude", "longitude"]],
-                        latitude="latitude",
-                        longitude="longitude",
-                        name="Heat Map",
-                        radius=radius,
-                        blur=blur,
-                        opacity=opacity,
-                    )
+                m.add_heatmap(
+                    data=df,
+                    latitude="latitude",
+                    longitude="longitude",
+                    value=intensity_column,  # Ensured it is not None
+                    name="Heat Map",
+                    radius=radius,
+                    blur=blur,
+                    opacity=opacity,
+                )
             except Exception as e:
                 st.error(f"🔥 Heatmap Error: {e}")
 
