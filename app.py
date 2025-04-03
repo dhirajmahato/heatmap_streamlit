@@ -38,4 +38,36 @@ if uploaded_file:
         )
 
         # Initialize the map centered at the mean of uploaded coordinates
-        m = leafmap
+        m = leafmap.Map(center=[df["latitude"].mean(), df["longitude"].mean()], zoom=10)
+
+        # Set base map
+        if basemap == "Satellite":
+            m.add_basemap("SATELLITE")
+        elif basemap == "Terrain":
+            m.add_basemap("TERRAIN")
+        elif basemap == "Dark Mode":
+            m.add_basemap("CartoDB.DarkMatter")
+        else:
+            m.add_basemap("OpenStreetMap")
+
+        # Add Heatmap layer
+        if show_heatmap:
+            m.add_heatmap(
+                data=df,
+                latitude="latitude",
+                longitude="longitude",
+                value=intensity_column,  # Uses intensity if available
+                name="Heat Map",
+                radius=radius,
+                blur=blur,
+                opacity=opacity,
+            )
+
+        # Display the map in Streamlit
+        m.to_streamlit(height=600)
+
+    else:
+        st.error("⚠️ Error: The Excel file must contain 'latitude' and 'longitude' columns.")
+
+else:
+    st.info("📤 Please upload an Excel file with 'latitude' and 'longitude' columns.")
