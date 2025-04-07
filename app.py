@@ -41,8 +41,12 @@ if uploaded_file:
         m = folium.Map(
             location=[df["latitude"].mean(), df["longitude"].mean()],
             zoom_start=10,
-            control_scale=True,
-            zoom_control=True,
+            draw_control=False,
+            measure_control=False,
+            fullscreen_control=False,
+            attribution_control=False,
+            locate_control=False,
+            layers_control=False,
         )
 
         # Add heatmap
