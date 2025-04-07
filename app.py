@@ -3,32 +3,28 @@ import leafmap.foliumap as leafmap
 import pandas as pd
 
 st.set_page_config(layout="wide")
-st.title("📍 Interactive Heatmap in Streamlit")
+st.title("📍 Interactive Heatmap with Markers")
 
-# Upload an Excel file
+# Upload Excel
 uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
 
-    # Check if required columns exist
     if "latitude" in df.columns and "longitude" in df.columns:
         st.success("✅ File uploaded successfully!")
 
-        # Clean coordinates
         df = df.dropna(subset=["latitude", "longitude"])
         df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
         df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
         df = df.dropna(subset=["latitude", "longitude"])
 
-        # Sidebar controls
         st.sidebar.header("🔧 Heatmap Settings")
         show_heatmap = st.sidebar.checkbox("Show Heatmap", value=True)
         radius = st.sidebar.slider("Heatmap Radius", 5, 50, 20)
         opacity = st.sidebar.slider("Heatmap Opacity", 0.1, 1.0, 0.6, step=0.1)
         blur = st.sidebar.slider("Heatmap Blur", 1, 30, 15)
 
-        # Handle intensity
         if "intensity" in df.columns:
             df["intensity"] = pd.to_numeric(df["intensity"], errors="coerce").fillna(1)
             intensity_column = "intensity"
@@ -37,10 +33,9 @@ if uploaded_file:
             df["intensity"] = 1
             intensity_column = "intensity"
 
-        # Base map selection
         basemap = st.sidebar.selectbox("Choose a Base Map", ["OpenStreetMap", "Satellite", "Terrain", "Dark Mode"])
 
-        # Initialize clean map (no draw/measure/fullscreen/etc.)
+        # Clean map with zoom + marker support
         m = leafmap.Map(
             center=[df["latitude"].mean(), df["longitude"].mean()],
             zoom=10,
@@ -52,7 +47,7 @@ if uploaded_file:
             layers_control=False,
         )
 
-        # Set base map
+        # Base map
         if basemap == "Satellite":
             m.add_basemap("SATELLITE")
         elif basemap == "Terrain":
@@ -62,7 +57,6 @@ if uploaded_file:
         else:
             m.add_basemap("OpenStreetMap")
 
-        # Preview data
         st.write("🔎 **Data Preview**:", df.head())
 
         # Add heatmap
@@ -81,11 +75,17 @@ if uploaded_file:
             except Exception as e:
                 st.error(f"🔥 Heatmap Error: {e}")
 
-        # Render map
+        # Add static markers
+        if "marker_label" in df.columns:
+            for _, row in df.iterrows():
+                m.add_marker(location=[row["latitude"], row["longitude"]], popup=row["marker_label"])
+        else:
+            st.info("ℹ️ No 'marker_label' column found. No markers will be added.")
+
         m.to_streamlit(height=600)
 
     else:
-        st.error("⚠️ The Excel file must contain 'latitude' and 'longitude' columns.")
+        st.error("⚠️ Excel must contain 'latitude' and 'longitude' columns.")
 
 else:
     st.info("📤 Please upload an Excel file with 'latitude' and 'longitude' columns.")
