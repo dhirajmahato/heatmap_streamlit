@@ -1,3 +1,4 @@
 leafmap
 pandas
 openpyxl
+streamlit_folium
