@@ -1,91 +1,145 @@
 import streamlit as st
-import leafmap.foliumap as leafmap
 import pandas as pd
+import folium
+import json
+from folium.plugins import HeatMap
+from shapely.geometry import LineString, Point
+from streamlit_folium import st_folium
 
-st.set_page_config(layout="wide")
-st.title("📍 Interactive Heatmap in Streamlit")
+# -------------------- Data Processing Functions --------------------
 
-# Upload an Excel file
-uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
-
-if uploaded_file:
-    df = pd.read_excel(uploaded_file)
-
-    # Check if required columns exist
+def read_geolocations_from_excel(file):
+    df = pd.read_excel(file)
     if "latitude" in df.columns and "longitude" in df.columns:
-        st.success("✅ File uploaded successfully!")
-
-        # Clean coordinates
-        df = df.dropna(subset=["latitude", "longitude"])
-        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-        df = df.dropna(subset=["latitude", "longitude"])
-
-        # Sidebar controls
-        st.sidebar.header("🔧 Heatmap Settings")
-        show_heatmap = st.sidebar.checkbox("Show Heatmap", value=True)
-        radius = st.sidebar.slider("Heatmap Radius", 5, 50, 20)
-        opacity = st.sidebar.slider("Heatmap Opacity", 0.1, 1.0, 0.6, step=0.1)
-        blur = st.sidebar.slider("Heatmap Blur", 1, 30, 15)
-
-        # Handle intensity
-        if "intensity" in df.columns:
-            df["intensity"] = pd.to_numeric(df["intensity"], errors="coerce").fillna(1)
-            intensity_column = "intensity"
-        else:
-            st.warning("⚠️ No intensity column found. Using default intensity.")
-            df["intensity"] = 1
-            intensity_column = "intensity"
-
-        # Base map selection
-        basemap = st.sidebar.selectbox("Choose a Base Map", ["OpenStreetMap", "Satellite", "Terrain", "Dark Mode"])
-
-        # Initialize clean map (no draw/measure/fullscreen/etc.)
-        m = leafmap.Map(
-            center=[df["latitude"].mean(), df["longitude"].mean()],
-            zoom=10,
-            draw_control=False,
-            measure_control=False,
-            fullscreen_control=False,
-            attribution_control=False,
-            locate_control=False,
-            layers_control=False,
-        )
-
-        # Set base map
-        if basemap == "Satellite":
-            m.add_basemap("SATELLITE")
-        elif basemap == "Terrain":
-            m.add_basemap("TERRAIN")
-        elif basemap == "Dark Mode":
-            m.add_basemap("CartoDB.DarkMatter")
-        else:
-            m.add_basemap("OpenStreetMap")
-
-        # Preview data
-        st.write("🔎 **Data Preview**:", df.head())
-
-        # Add heatmap
-        if show_heatmap:
-            try:
-                m.add_heatmap(
-                    data=df,
-                    latitude="latitude",
-                    longitude="longitude",
-                    value=intensity_column,
-                    name="Heat Map",
-                    radius=radius,
-                    blur=blur,
-                    opacity=opacity,
-                )
-            except Exception as e:
-                st.error(f"🔥 Heatmap Error: {e}")
-
-        # Render map
-        m.to_streamlit(height=600)
-
+        return list(df[["latitude", "longitude"]].itertuples(index=False, name=None))
     else:
-        st.error("⚠️ The Excel file must contain 'latitude' and 'longitude' columns.")
+        st.error("The Excel file must contain 'latitude' and 'longitude' columns.")
+        return []
 
+def read_metro_data_from_geojson(file):
+    data = json.load(file)
+    metro_lines = []
+    all_stations = []
+
+    for feature in data["features"]:
+        geometry_type = feature["geometry"]["type"]
+        coordinates = feature["geometry"]["coordinates"]
+        props = feature["properties"]
+        color = props.get("description", "blue")
+        name = props.get("name") or props.get("Name")
+
+        if geometry_type == "LineString":
+            line_coords = [(lat, lon) for lon, lat, *_ in coordinates]
+            metro_lines.append({
+                "name": name or f"Metro Line {len(metro_lines) + 1}",
+                "color": color,
+                "line": line_coords,
+                "stations": []
+            })
+
+        elif geometry_type == "Point":
+            all_stations.append({
+                "location": (coordinates[1], coordinates[0]),
+                "name": name or "Unknown Station"
+            })
+
+    return metro_lines, all_stations
+
+def assign_stations_to_closest_line(metro_lines, stations):
+    for station in stations:
+        min_distance = float("inf")
+        closest_line = None
+        station_point = Point(station["location"][1], station["location"][0])  # (lon, lat)
+
+        for line in metro_lines:
+            line_geom = LineString([(lon, lat) for lat, lon in line["line"]])
+            distance = station_point.distance(line_geom)
+            if distance < min_distance:
+                min_distance = distance
+                closest_line = line
+
+        if closest_line:
+            closest_line["stations"].append(station)
+
+    return metro_lines
+
+def add_metro_layers(m, metro_groups):
+    for group in metro_groups:
+        layer = folium.FeatureGroup(name=group["name"], show=True)
+
+        folium.PolyLine(
+            group["line"], color=group["color"], weight=4, opacity=1.0
+        ).add_to(layer)
+
+        for station in group["stations"]:
+            folium.CircleMarker(
+                location=station["location"],
+                radius=5,
+                color="black",
+                fill=True,
+                fill_color=group["color"],
+                fill_opacity=0.8
+            ).add_to(layer)
+
+        layer.add_to(m)
+
+def create_heatmap(geolocations, metro_groups, zoom_start=12, radius=15, blur=20, max_intensity=100):
+    if not geolocations:
+        return None
+
+    m = folium.Map(location=geolocations[0], zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True)
+
+    folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(m)
+
+    heatmap_layer = folium.FeatureGroup(name="Pickup Heatmap", show=True)
+    HeatMap(
+        geolocations,
+        radius=radius,
+        blur=blur,
+        max_intensity=max_intensity
+    ).add_to(heatmap_layer)
+    heatmap_layer.add_to(m)
+
+    add_metro_layers(m, metro_groups)
+
+    folium.LayerControl(collapsed=True).add_to(m)
+    return m
+
+# -------------------- Streamlit UI --------------------
+
+st.set_page_config(page_title="Metro Heatmap Viewer", layout="wide")
+st.title("📍 Metro Station & Pickup Heatmap Visualizer")
+
+excel_file = st.file_uploader("📄 Upload Excel File (with 'latitude' and 'longitude' columns)", type=["xlsx"])
+geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    zoom = st.slider("Zoom Level", 5, 20, 12)
+with col2:
+    radius = st.slider("Heatmap Radius", 1, 50, 20)
+with col3:
+    blur = st.slider("Heatmap Blur", 1, 50, 17)
+
+max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
+
+if excel_file and geojson_file:
+    geolocations = read_geolocations_from_excel(excel_file)
+    metro_lines, all_stations = read_metro_data_from_geojson(geojson_file)
+    grouped_lines = assign_stations_to_closest_line(metro_lines, all_stations)
+
+    heatmap = create_heatmap(
+        geolocations,
+        grouped_lines,
+        zoom_start=zoom,
+        radius=radius,
+        blur=blur,
+        max_intensity=max_intensity
+    )
+
+    if heatmap:
+        st_data = st_folium(heatmap, width=1000, height=700)
+    else:
+        st.warning("No valid geolocation data to display.")
 else:
-    st.info("📤 Please upload an Excel file with 'latitude' and 'longitude' columns.")
+    st.info("Please upload both files to begin.")
