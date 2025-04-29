@@ -1,4 +1,6 @@
 leafmap
 pandas
 openpyxl
+shapely
+folium
 streamlit-folium
