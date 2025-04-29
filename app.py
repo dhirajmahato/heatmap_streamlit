@@ -83,24 +83,27 @@ def add_metro_layers(m, metro_groups):
 
         layer.add_to(m)
 
-def create_heatmap(geolocations, metro_groups, zoom_start=12, radius=15, blur=20, max_intensity=100):
-    if not geolocations:
+def create_flexible_map(geolocations=None, metro_groups=None, zoom_start=12, radius=15, blur=20, max_intensity=100):
+    if not geolocations and not metro_groups:
         return None
 
-    m = folium.Map(location=geolocations[0], zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True)
+    start_location = (geolocations[0] if geolocations else metro_groups[0]["line"][0])
+    m = folium.Map(location=start_location, zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True)
 
     folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(m)
 
-    heatmap_layer = folium.FeatureGroup(name="Pickup Heatmap", show=True)
-    HeatMap(
-        geolocations,
-        radius=radius,
-        blur=blur,
-        max_intensity=max_intensity
-    ).add_to(heatmap_layer)
-    heatmap_layer.add_to(m)
+    if geolocations:
+        heatmap_layer = folium.FeatureGroup(name="Pickup Heatmap", show=True)
+        HeatMap(
+            geolocations,
+            radius=radius,
+            blur=blur,
+            max_intensity=max_intensity
+        ).add_to(heatmap_layer)
+        heatmap_layer.add_to(m)
 
-    add_metro_layers(m, metro_groups)
+    if metro_groups:
+        add_metro_layers(m, metro_groups)
 
     folium.LayerControl(collapsed=True).add_to(m)
     return m
@@ -123,23 +126,26 @@ with col3:
 
 max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 
-if excel_file and geojson_file:
-    geolocations = read_geolocations_from_excel(excel_file)
-    metro_lines, all_stations = read_metro_data_from_geojson(geojson_file)
-    grouped_lines = assign_stations_to_closest_line(metro_lines, all_stations)
+geolocations = []
+metro_groups = []
 
-    heatmap = create_heatmap(
+if excel_file:
+    geolocations = read_geolocations_from_excel(excel_file)
+
+if geojson_file:
+    metro_lines, all_stations = read_metro_data_from_geojson(geojson_file)
+    metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
+
+if geolocations or metro_groups:
+    result_map = create_flexible_map(
         geolocations,
-        grouped_lines,
+        metro_groups,
         zoom_start=zoom,
         radius=radius,
         blur=blur,
         max_intensity=max_intensity
     )
-
-    if heatmap:
-        st_data = st_folium(heatmap, width=1000, height=700)
-    else:
-        st.warning("No valid geolocation data to display.")
+    if result_map:
+        st_folium(result_map, width=1000, height=700)
 else:
-    st.info("Please upload both files to begin.")
+    st.info("Please upload at least one file to see the map.")
