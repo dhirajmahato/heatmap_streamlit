@@ -146,6 +146,6 @@ if geolocations or metro_groups:
         max_intensity=max_intensity
     )
     if result_map:
-        st_folium(result_map, width=1000, height=700)
+        st_folium(result_map, height=700, use_container_width=True)
 else:
     st.info("Please upload at least one file to see the map.")
