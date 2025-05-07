@@ -176,7 +176,6 @@ with st.expander("Add Office Marker"):
 
 geolocations = []
 metro_groups = []
-add_office = []
 
 if excel_file:
     geolocations = read_geolocations_from_excel(excel_file)
