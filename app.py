@@ -166,7 +166,11 @@ max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 # For metro lines and station
 st.markdown("### 🏢 Optional: Add Metro lines [Currently Bangalore supported]")
 
-geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
+#geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
+# Load default metro GeoJSON
+with st.expander("Add Metro Marker"):
+    add_metro = st.checkbox("Show metro Marker & stations", value=False)
+
 
 # Office Marker
 st.markdown("### 🏢 Optional: Add Office Marker with Distance Rings")
@@ -184,9 +188,16 @@ metro_groups = []
 if excel_file:
     geolocations = read_geolocations_from_excel(excel_file)
 
-if geojson_file:
-    metro_lines, all_stations = read_metro_data_from_geojson(geojson_file)
-    metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
+if add_metro:
+    # metro_lines, all_stations = read_metro_data_from_geojson(geojson_file)
+    # metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
+try:
+    with open("metro-lines-stations.geojson", "r") as f:
+        metro_lines, all_stations = read_metro_data_from_geojson(f)
+        metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
+except FileNotFoundError:
+    st.error("Default metro GeoJSON file not found. Please ensure 'default_metro.geojson' is in the project directory.")
+    metro_groups = []
 
 office_marker = None
 if add_office and office_lat != 0.0 and office_lon != 0.0:
