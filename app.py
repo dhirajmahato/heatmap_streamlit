@@ -152,7 +152,6 @@ st.set_page_config(page_title="Metro Heatmap Viewer", layout="wide")
 st.title("📍 Metro Station & Pickup Heatmap Visualizer")
 
 excel_file = st.file_uploader("📄 Upload Excel File (with 'latitude' and 'longitude' columns)", type=["xlsx"])
-geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -163,6 +162,8 @@ with col3:
     blur = st.slider("Heatmap Blur", 1, 50, 17)
 
 max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
+
+geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
 
 # Office Marker
 st.markdown("### 🏢 Optional: Add Office Marker with Distance Rings")
