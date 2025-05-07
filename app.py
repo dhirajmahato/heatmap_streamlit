@@ -10,10 +10,17 @@ from streamlit_folium import st_folium
 
 def read_geolocations_from_excel(file):
     df = pd.read_excel(file)
-    if "latitude" in df.columns and "longitude" in df.columns:
-        return list(df[["latitude", "longitude"]].itertuples(index=False, name=None))
+    # Normalize column names
+    normalized_columns = {col.lower().strip().replace(" ", ""): col for col in df.columns}
+
+    # Try to find latitude and longitude columns
+    lat_col = next((original for norm, original in normalized_columns.items() if "lat" in norm), None)
+    lon_col = next((original for norm, original in normalized_columns.items() if "lon" in norm), None)
+
+    if lat_col and lon_col:
+        return list(df[[lat_col, lon_col]].itertuples(index=False, name=None))
     else:
-        st.error("The Excel file must contain 'latitude' and 'longitude' columns.")
+        st.error("The Excel file must contain columns for latitude and longitude (e.g., 'Latitude', 'lat', 'longitude', etc.).")
         return []
 
 def read_metro_data_from_geojson(file):
