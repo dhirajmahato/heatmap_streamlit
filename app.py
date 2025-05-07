@@ -153,6 +153,7 @@ st.title("📍 Metro Station & Pickup Heatmap Visualizer")
 
 excel_file = st.file_uploader("📄 Upload Excel File (with 'latitude' and 'longitude' columns)", type=["xlsx"])
 
+# Controls for map styling
 col1, col2, col3 = st.columns(3)
 with col1:
     zoom = st.slider("Zoom Level", 5, 20, 12)
@@ -163,14 +164,10 @@ with col3:
 
 max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 
-# For metro lines and station
-st.markdown("### 🏢 Optional: Add Metro lines [Currently Bangalore supported]")
-
-#geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
-# Load default metro GeoJSON
-with st.expander("Add Metro Marker"):
-    add_metro = st.checkbox("Show metro Marker & stations", value=False)
-
+# Metro Marker Option
+st.markdown("### 🚇 Optional: Add Metro Lines (Currently Bangalore Supported)")
+with st.expander("Add Metro Markers"):
+    show_metro = st.checkbox("Show Metro Lines & Stations", value=False)
 
 # Office Marker
 st.markdown("### 🏢 Optional: Add Office Marker with Distance Rings")
@@ -180,27 +177,22 @@ with st.expander("Add Office Marker"):
         office_lat = st.number_input("Latitude", value=0.0, format="%.6f")
     with col_lon:
         office_lon = st.number_input("Longitude", value=0.0, format="%.6f")
-    add_office = st.checkbox("Show Office Marker & Distance Rings", value=False)
+    show_office = st.checkbox("Show Office Marker & Distance Rings", value=False)
 
-geolocations = []
+# Data loading
+geolocations = read_geolocations_from_excel(excel_file) if excel_file else []
 metro_groups = []
 
-if excel_file:
-    geolocations = read_geolocations_from_excel(excel_file)
-
-if add_metro:
-    # metro_lines, all_stations = read_metro_data_from_geojson(geojson_file)
-    # metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
-try:
-    with open("metro-lines-stations.geojson", "r") as f:
-        metro_lines, all_stations = read_metro_data_from_geojson(f)
-        metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
-except FileNotFoundError:
-    st.error("Default metro GeoJSON file not found. Please ensure 'default_metro.geojson' is in the project directory.")
-    metro_groups = []
+if show_metro:
+    try:
+        with open("metro-lines-stations.geojson", "r") as f:
+            metro_lines, all_stations = read_metro_data_from_geojson(f)
+            metro_groups = assign_stations_to_closest_line(metro_lines, all_stations)
+    except FileNotFoundError:
+        st.error("Default metro GeoJSON file not found. Please ensure 'metro-lines-stations.geojson' is in the project directory.")
 
 office_marker = None
-if add_office and office_lat != 0.0 and office_lon != 0.0:
+if show_office and office_lat != 0.0 and office_lon != 0.0:
     office_marker = {
         "lat": office_lat,
         "lon": office_lon,
@@ -209,10 +201,11 @@ if add_office and office_lat != 0.0 and office_lon != 0.0:
         "layer_name": "Office Range"
     }
 
+# Map rendering
 if geolocations or metro_groups or office_marker:
     result_map = create_flexible_map(
-        geolocations,
-        metro_groups,
+        geolocations=geolocations,
+        metro_groups=metro_groups,
         zoom_start=zoom,
         radius=radius,
         blur=blur,
@@ -222,4 +215,4 @@ if geolocations or metro_groups or office_marker:
     if result_map:
         st_folium(result_map, width="100%", height=700)
 else:
-    st.info("Please upload at least one file or define an office marker to see the map.")
+    st.info("Please upload an Excel file or enable metro/office markers to see the map.")
