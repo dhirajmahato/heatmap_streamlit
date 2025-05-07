@@ -163,6 +163,9 @@ with col3:
 
 max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 
+# For metro lines and station
+st.markdown("### 🏢 Optional: Add Metro lines [Currently Bangalore supported]")
+
 geojson_file = st.file_uploader("🗺️ Upload Metro GeoJSON File", type=["geojson", "json"])
 
 # Office Marker
