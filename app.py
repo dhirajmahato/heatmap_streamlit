@@ -90,7 +90,7 @@ def add_metro_layers(m, metro_groups):
 
         layer.add_to(m)
 
-def add_concentric_circles(map_obj, lat, lon, radii_meters=[5000, 10000, 15000], label="Office", layer_name="Office Range"):
+def add_concentric_circles(map_obj, lat, lon, radii_meters=[10000, 20000, 30000], label="Office", layer_name="Office Range"):
     layer = folium.FeatureGroup(name=layer_name, show=True)
 
     folium.Marker(
@@ -145,7 +145,7 @@ def create_flexible_map(geolocations=None, metro_groups=None, zoom_start=12, rad
             office_marker["lat"],
             office_marker["lon"],
             label=office_marker.get("label", "Office"),
-            radii_meters=office_marker.get("radii", [5000, 10000, 15000]),
+            radii_meters=office_marker.get("radii", [10000, 20000, 30000]),
             layer_name=office_marker.get("layer_name", "Office Range")
         )
 
@@ -223,3 +223,4 @@ if geolocations or metro_groups or office_marker:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
