@@ -204,7 +204,7 @@ if show_office and office_lat != 0.0 and office_lon != 0.0:
         "lat": office_lat,
         "lon": office_lon,
         "label": "Office",
-        "radii": [5000, 10000, 15000],
+        "radii": [10000, 20000, 30000],
         "layer_name": "Office Range"
     }
 
@@ -223,4 +223,5 @@ if geolocations or metro_groups or office_marker:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
