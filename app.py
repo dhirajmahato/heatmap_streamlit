@@ -281,9 +281,10 @@ if geolocations or metro_groups or office_marker or hyd_files:
         hyd_files=hyd_files  # pass the tuple here
     )
     if result_map:
-        st_folium(result_map, width="100%", height=700)
+        st_folium(result_map, width="100%", height=1000)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
