@@ -175,6 +175,7 @@ max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 st.markdown("### 🚇 Optional: Add Metro Lines (Currently Bangalore Supported)")
 with st.expander("Add Metro Markers"):
     show_Bangalore_metro = st.checkbox("Show Bangalore Metro Lines & Stations", value=False)
+    show_Hyderbad_metro = st.checkbox("Show Hyderabad Metro", value=False)
 
 # Office Marker
 st.markdown("### 🏢 Optional: Add Office Marker with Distance Rings")
@@ -185,7 +186,7 @@ with st.expander("Add Office Marker"):
     with col_lon:
         office_lon = st.number_input("Longitude", value=0.0, format="%.6f")
 
-    ring_input = st.text_input("Enter radii in meters, comma-separated (e.g., 5000,15000,30000)", value="10000,20000,30000")
+    ring_input = st.text_input("Enter radii in meters, comma-separated (e.g., 5000,15000,30000)", value="10000,20000,30000")                # user input radii
     try:
         user_radii = [int(x.strip()) for x in ring_input.split(",") if x.strip().isdigit()]
     except:
@@ -195,8 +196,8 @@ show_office = st.checkbox("Show Office Marker & Distance Rings", value=False)
 
 # Data loading
 geolocations = read_geolocations_from_excel(excel_file) if excel_file else []
-metro_groups = []
 
+metro_groups = []
 if show_Bangalore_metro:
     try:
         with open("metro-lines-stations.geojson", "r") as f:
@@ -230,6 +231,7 @@ if geolocations or metro_groups or office_marker:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
