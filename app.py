@@ -6,6 +6,7 @@ from folium.plugins import HeatMap
 from shapely.geometry import LineString, Point
 from streamlit_folium import st_folium
 import os
+import ast
 
 # -------------------- Data Processing Functions --------------------
 
@@ -99,6 +100,15 @@ def add_hyderabad_metro(map_obj, lines_file, stations_file):
     lines_group = folium.FeatureGroup(name='Hyderabad Metro Lines')
     for _, row in df_lines.iterrows():
         # Expect row['Polyline'] as list of tuples [(lat, lon), ...]
+        coords = row['coords']
+        
+        # Convert string to list if needed
+        if isinstance(coords, str):
+            coords = ast.literal_eval(coords)  # safe alternative to eval
+    
+        # Ensure each coordinate is a list [lat, lon]
+        coords = [[lat, lon] for lat, lon in coords]
+
         folium.PolyLine(row['coords'], color=row['Color'], weight=5,
                         opacity=0.7).add_to(lines_group)
     lines_group.add_to(map_obj)
@@ -106,6 +116,11 @@ def add_hyderabad_metro(map_obj, lines_file, stations_file):
     # Stations
     stations_group = folium.FeatureGroup(name='Hyderabad Metro Stations')
     for _, row in df_stations.iterrows():
+        coords = row['coords']
+        if isinstance(coords, str):
+            coords = ast.literal_eval(coords)
+        coords = [coords[0], coords[1]]
+        
         folium.CircleMarker(location=row['coords'],
                             radius=5, color='black', fill=True,
                             fill_color=row['Color'], fill_opacity=0.7,
@@ -270,6 +285,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
