@@ -174,7 +174,7 @@ max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 # Metro Marker Option
 st.markdown("### 🚇 Optional: Add Metro Lines (Currently Bangalore Supported)")
 with st.expander("Add Metro Markers"):
-    show_metro = st.checkbox("Show Metro Lines & Stations", value=False)
+    show_Bangalore_metro = st.checkbox("Show Bangalore Metro Lines & Stations", value=False)
 
 # Office Marker
 st.markdown("### 🏢 Optional: Add Office Marker with Distance Rings")
@@ -190,7 +190,7 @@ with st.expander("Add Office Marker"):
 geolocations = read_geolocations_from_excel(excel_file) if excel_file else []
 metro_groups = []
 
-if show_metro:
+if show_Bangalore_metro:
     try:
         with open("metro-lines-stations.geojson", "r") as f:
             metro_lines, all_stations = read_metro_data_from_geojson(f)
@@ -223,5 +223,6 @@ if geolocations or metro_groups or office_marker:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
