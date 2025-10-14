@@ -92,8 +92,8 @@ def add_metro_layers(m, metro_groups):
         layer.add_to(m)
 
 def add_hyderabad_metro(map_obj, lines_file, stations_file):
-    df_lines = pd.read_excel(lines_file)
-    df_stations = pd.read_excel(stations_file)
+    df_lines = pd.read_csv(lines_file)
+    df_stations = pd.read_csv(stations_file)
     
     # Lines
     lines_group = folium.FeatureGroup(name='Hyderabad Metro Lines')
@@ -270,6 +270,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
