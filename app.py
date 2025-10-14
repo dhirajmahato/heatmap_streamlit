@@ -185,8 +185,7 @@ with st.expander("Add Office Marker"):
     with col_lon:
         office_lon = st.number_input("Longitude", value=0.0, format="%.6f")
 
- ring_input = st.text_input("Enter radii in meters, comma-separated (e.g., 5000,15000,30000)", value="10000,20000,30000")
-
+    ring_input = st.text_input("Enter radii in meters, comma-separated (e.g., 5000,15000,30000)", value="10000,20000,30000")
     try:
         user_radii = [int(x.strip()) for x in ring_input.split(",") if x.strip().isdigit()]
     except:
@@ -231,6 +230,7 @@ if geolocations or metro_groups or office_marker:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
