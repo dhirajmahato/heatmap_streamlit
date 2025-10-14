@@ -184,7 +184,15 @@ with st.expander("Add Office Marker"):
         office_lat = st.number_input("Latitude", value=0.0, format="%.6f")
     with col_lon:
         office_lon = st.number_input("Longitude", value=0.0, format="%.6f")
-    show_office = st.checkbox("Show Office Marker & Distance Rings", value=False)
+
+ ring_input = st.text_input("Enter radii in meters, comma-separated (e.g., 5000,15000,30000)", value="10000,20000,30000")
+
+    try:
+        user_radii = [int(x.strip()) for x in ring_input.split(",") if x.strip().isdigit()]
+    except:
+        user_radii = [10000, 20000, 30000]  # fallback
+    
+show_office = st.checkbox("Show Office Marker & Distance Rings", value=False)
 
 # Data loading
 geolocations = read_geolocations_from_excel(excel_file) if excel_file else []
@@ -204,7 +212,7 @@ if show_office and office_lat != 0.0 and office_lon != 0.0:
         "lat": office_lat,
         "lon": office_lon,
         "label": "Office",
-        "radii": [10000, 20000, 30000],
+        "radii": user_radii,
         "layer_name": "Office Range"
     }
 
@@ -223,6 +231,7 @@ if geolocations or metro_groups or office_marker:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
