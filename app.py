@@ -100,7 +100,7 @@ def add_hyderabad_metro(map_obj, lines_file, stations_file):
     for _, row in df_lines.iterrows():
         # Expect row['Polyline'] as list of tuples [(lat, lon), ...]
         folium.PolyLine(row['coords'], color=row['Color'], weight=5,
-                        opacity=0.7, popup=row['Line']).add_to(lines_group)
+                        opacity=0.7).add_to(lines_group)
     lines_group.add_to(map_obj)
     
     # Stations
@@ -270,6 +270,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
