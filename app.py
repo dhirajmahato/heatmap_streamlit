@@ -121,7 +121,7 @@ def add_hyderabad_metro(map_obj, lines_file, stations_file):
             radius=5,
             color='black',
             fill=True,
-            fill_color=row.get('Color', 'blue'),
+            fill_color=row.get('color', 'blue'),
             fill_opacity=0.7,
             popup=row.get('Station', 'Unknown Station')
         ).add_to(stations_group)
@@ -284,6 +284,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=1000)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
