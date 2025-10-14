@@ -102,9 +102,9 @@ def add_hyderabad_metro(map_obj, lines_file, stations_file):
         # Expect row['Polyline'] as list of tuples [(lat, lon), ...]
         coords = row['coords']
         
-        # Convert string to list if needed
+       # If coords is a string, parse it
         if isinstance(coords, str):
-            coords = ast.literal_eval(coords)  # safe alternative to eval
+            coords = ast.literal_eval(coords)
     
         # Ensure each coordinate is a list [lat, lon]
         coords = [[lat, lon] for lat, lon in coords]
@@ -285,6 +285,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
