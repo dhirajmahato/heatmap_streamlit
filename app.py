@@ -92,40 +92,39 @@ def add_metro_layers(m, metro_groups):
 
         layer.add_to(m)
 
+# --- Fixed Hyderabad Metro Addition ---
 def add_hyderabad_metro(map_obj, lines_file, stations_file):
     df_lines = pd.read_csv(lines_file)
     df_stations = pd.read_csv(stations_file)
-    
+
     # Lines
     lines_group = folium.FeatureGroup(name='Hyderabad Metro Lines')
     for _, row in df_lines.iterrows():
-        # Expect row['Polyline'] as list of tuples [(lat, lon), ...]
         coords = row['coords']
-        
-       # If coords is a string, parse it
         if isinstance(coords, str):
-            coords = ast.literal_eval(coords)
-    
-        # Ensure each coordinate is a list [lat, lon]
-        coords = [[lat, lon] for lat, lon in coords]
-
-        folium.PolyLine(row['coords'], color=row['Color'], weight=5,
-                        opacity=0.7).add_to(lines_group)
+            coords = ast.literal_eval(coords)  # parse string to list of tuples
+        coords = [[lat, lon] for lat, lon in coords]  # ensure proper format
+        folium.PolyLine(
+            coords, color=row.get('Color', 'blue'), weight=5, opacity=0.7
+        ).add_to(lines_group)
     lines_group.add_to(map_obj)
-    
+
     # Stations
     stations_group = folium.FeatureGroup(name='Hyderabad Metro Stations')
     for _, row in df_stations.iterrows():
         coords = row['coords']
         if isinstance(coords, str):
             coords = ast.literal_eval(coords)
-        coords = [coords[0], coords[1]]
-        
-        folium.CircleMarker(location=row['coords'],
-                            radius=5, color='black', fill=True,
-                            fill_color=row['Color'], fill_opacity=0.7,
-                            popup=row['Station']).add_to(stations_group)
-    
+        coords = [coords[0], coords[1]]  # ensure [lat, lon]
+        folium.CircleMarker(
+            location=coords,
+            radius=5,
+            color='black',
+            fill=True,
+            fill_color=row.get('Color', 'blue'),
+            fill_opacity=0.7,
+            popup=row.get('Station', 'Unknown Station')
+        ).add_to(stations_group)
     stations_group.add_to(map_obj)
 
 def add_concentric_circles(map_obj, lat, lon, radii_meters=[10000, 20000, 30000], label="Office", layer_name="Office Range"):
@@ -285,6 +284,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
