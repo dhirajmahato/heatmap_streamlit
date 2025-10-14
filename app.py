@@ -5,6 +5,7 @@ import json
 from folium.plugins import HeatMap
 from shapely.geometry import LineString, Point
 from streamlit_folium import st_folium
+import os
 
 # -------------------- Data Processing Functions --------------------
 
@@ -90,6 +91,28 @@ def add_metro_layers(m, metro_groups):
 
         layer.add_to(m)
 
+def add_hyderabad_metro(map_obj, lines_file, stations_file):
+    df_lines = pd.read_excel(lines_file)
+    df_stations = pd.read_excel(stations_file)
+    
+    # Lines
+    lines_group = folium.FeatureGroup(name='Hyderabad Metro Lines')
+    for _, row in df_lines.iterrows():
+        # Expect row['Polyline'] as list of tuples [(lat, lon), ...]
+        folium.PolyLine(row['coords'], color=row['Color'], weight=5,
+                        opacity=0.7, popup=row['Line']).add_to(lines_group)
+    lines_group.add_to(map_obj)
+    
+    # Stations
+    stations_group = folium.FeatureGroup(name='Hyderabad Metro Stations')
+    for _, row in df_stations.iterrows():
+        folium.CircleMarker(location=row['coords'],
+                            radius=5, color='black', fill=True,
+                            fill_color=row['Color'], fill_opacity=0.7,
+                            popup=row['Station']).add_to(stations_group)
+    
+    stations_group.add_to(map_obj)
+
 def add_concentric_circles(map_obj, lat, lon, radii_meters=[10000, 20000, 30000], label="Office", layer_name="Office Range"):
     layer = folium.FeatureGroup(name=layer_name, show=True)
 
@@ -113,8 +136,8 @@ def add_concentric_circles(map_obj, lat, lon, radii_meters=[10000, 20000, 30000]
     layer.add_to(map_obj)
 
 
-def create_flexible_map(geolocations=None, metro_groups=None, zoom_start=12, radius=15, blur=20, max_intensity=100, office_marker=None):
-    if not geolocations and not metro_groups and not office_marker:
+def create_flexible_map(geolocations=None, metro_groups=None, zoom_start=12, radius=15, blur=20, max_intensity=100, office_marker=None, hyd_files=None):
+    if not geolocations and not metro_groups and not office_marker and not hyd_files:
         return None
 
     start_location = (
@@ -138,6 +161,10 @@ def create_flexible_map(geolocations=None, metro_groups=None, zoom_start=12, rad
 
     if metro_groups:
         add_metro_layers(m, metro_groups)
+        
+    if hyd_files:
+        lines_file, stations_file = hyd_files
+        add_hyderabad_metro(m, lines_file, stations_file)
 
     if office_marker:
         add_concentric_circles(
@@ -206,6 +233,17 @@ if show_Bangalore_metro:
     except FileNotFoundError:
         st.error("Default metro GeoJSON file not found. Please ensure 'metro-lines-stations.geojson' is in the project directory.")
 
+# --- Load Hyderabad Metro (Excel) ---
+hyd_files = None
+if show_Hyderbad_metro:
+    parent_dir = os.getcwd()  # or change to your project directory
+    lines_file = os.path.join(parent_dir, "Hyd_metro_polyline.csv")
+    stations_file = os.path.join(parent_dir, "Hyd_metro_stations.csv")
+    if os.path.exists(lines_file) and os.path.exists(stations_file):
+        hyd_files = (lines_file, stations_file)
+    else:
+        st.error("Hyderabad Metro csv files not found in project directory.")
+
 office_marker = None
 if show_office and office_lat != 0.0 and office_lon != 0.0:
     office_marker = {
@@ -217,7 +255,7 @@ if show_office and office_lat != 0.0 and office_lon != 0.0:
     }
 
 # Map rendering
-if geolocations or metro_groups or office_marker:
+if geolocations or metro_groups or office_marker or hyd_files:
     result_map = create_flexible_map(
         geolocations=geolocations,
         metro_groups=metro_groups,
@@ -225,13 +263,13 @@ if geolocations or metro_groups or office_marker:
         radius=radius,
         blur=blur,
         max_intensity=max_intensity,
-        office_marker=office_marker
+        office_marker=office_marker,
+        hyd_files=hyd_files  # pass the tuple here
     )
     if result_map:
         st_folium(result_map, width="100%", height=700)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
-
 
 
 
