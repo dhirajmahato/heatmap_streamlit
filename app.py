@@ -80,15 +80,15 @@ def add_metro_layers(m, metro_groups):
             group["line"], color=group["color"], weight=4, opacity=1.0
         ).add_to(layer)
 
-        for station in group["stations"]:
-            folium.CircleMarker(
-                location=station["location"],
-                radius=5,
-                color="black",
-                fill=True,
-                fill_color=group["color"],
-                fill_opacity=0.8
-            ).add_to(layer)
+        # for station in group["stations"]:
+        #     folium.CircleMarker(
+        #         location=station["location"],
+        #         radius=5,
+        #         color="black",
+        #         fill=True,
+        #         fill_color=group["color"],
+        #         fill_opacity=0.8
+        #     ).add_to(layer)
 
         layer.add_to(m)
 
@@ -284,6 +284,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=1000)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
