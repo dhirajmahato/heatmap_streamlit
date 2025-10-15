@@ -213,7 +213,7 @@ with col3:
 max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
 
 # Metro Marker Option
-st.markdown("### 🚇 Optional: Add Metro Lines (Currently Bangalore Supported)")
+st.markdown("### 🚇 Optional: Add Metro Lines (Currently Bangalore and Hyderabad Supported)")
 with st.expander("Add Metro Markers"):
     show_Bangalore_metro = st.checkbox("Show Bangalore Metro Lines & Stations", value=False)
     show_Hyderbad_metro = st.checkbox("Show Hyderabad Metro", value=False)
@@ -284,6 +284,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=1000)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
