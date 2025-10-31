@@ -133,7 +133,7 @@ def add_concentric_circles(map_obj, lat, lon, radii_meters=[10000, 20000, 30000]
     folium.Marker(
         location=[lat, lon],
         popup=label,
-        icon=folium.Icon(color='red')
+        icon=folium.Icon(color="darkred", icon="building", prefix="fa")
     ).add_to(layer)
 
     for r in radii_meters:
@@ -284,6 +284,7 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=1000)
 else:
     st.info("Please upload an Excel file or enable metro/office markers to see the map.")
+
 
 
 
