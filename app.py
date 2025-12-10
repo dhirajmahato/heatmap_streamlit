@@ -243,11 +243,14 @@ with st.expander("Add Metro Markers"):
 # Office Marker
 st.markdown("### 🏢 Optional: Add Office Marker with Distance Rings")
 with st.expander("Add Office Marker"):
-    col_lat, col_lon = st.columns(2)
-    with col_lat:
-        office_lat = st.number_input("Latitude", value=0.0, format="%.6f")
-    with col_lon:
-        office_lon = st.number_input("Longitude", value=0.0, format="%.6f")
+    
+    coords = st.text_input("Latitude, Longitude", value="0.0, 0.0")
+    # Parse values safely
+    try:
+        office_lat, office_lon = map(float, coords.split(","))
+    except ValueError:
+        st.error("Please enter coordinates in the format: latitude, longitude")
+        office_lat, office_lon = None, None
 
     ring_input = st.text_input("Enter radii in meters (comma-separated)", value="10000,20000,30000")
     try:
@@ -306,3 +309,4 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=1000)
 else:
     st.info("📂 Please upload data or enable metro/office markers to view the map.")
+
