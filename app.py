@@ -165,7 +165,7 @@ def create_flexible_map(
     m = folium.Map(location=start_location, zoom_start=zoom_start, tiles="CartoDB positron", control_scale=True)
     folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(m)
 
-    # --- Heatmap or Points ---
+    # ------------------------------------------------------------------------- Choose Heatmap or Points ------------------------------------------------------------------
     if geolocations:
         if map_type.lower() == "heatmap":
             layer = folium.FeatureGroup(name="Pickup Heatmap", show=True)
@@ -214,7 +214,7 @@ def create_flexible_map(
     return m
 
 
-# -------------------- Streamlit UI --------------------
+# ----------------------------------------------------------------------------------------------- Streamlit UI ------------------------------------------------------------------------
 
 st.set_page_config(page_title="Metro Heatmap Viewer", layout="wide")
 st.title("📍 Metro Station & Pickup Visualizer")
@@ -260,7 +260,7 @@ with st.expander("Add Office Marker"):
     
 show_office = st.checkbox("Show Office Marker & Distance Rings", value=False)
 
-# --- Data loading ---
+# ------------------------------------------------------------------------------------------------------------ Data loading -------------------------------------------------------------------
 geolocations = read_geolocations_from_excel(excel_file) if excel_file else []
 
 metro_groups = []
@@ -292,7 +292,7 @@ if show_office and office_lat != 0.0 and office_lon != 0.0:
         "layer_name": "Office Range"
     }
 
-# --- Map rendering ---
+# -------------------------------------------------------------------------------- Map rendering ---------------------------------------------------------------------------------
 if geolocations or metro_groups or office_marker or hyd_files:
     result_map = create_flexible_map(
         geolocations=geolocations,
@@ -309,4 +309,5 @@ if geolocations or metro_groups or office_marker or hyd_files:
         st_folium(result_map, width="100%", height=1000)
 else:
     st.info("📂 Please upload data or enable metro/office markers to view the map.")
+
 
