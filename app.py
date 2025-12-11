@@ -18,25 +18,79 @@ def find_lat_lon_columns(df: pd.DataFrame) -> Tuple[Optional[str], Optional[str]
     """
     Find likely latitude and longitude column names (case/space insensitive).
     Returns original column names (or (None, None) if not found).
+    Searches for variations: lat, latitude, long, lon, longitude
     """
-    normalized = {col.lower().strip().replace(" ", ""): col for col in df.columns}
-    lat_col = next((orig for norm, orig in normalized.items() if "lat" in norm), None)
-    lon_col = next((orig for norm, orig in normalized.items() if "lon" in norm), None)
+    normalized = {col.lower().strip().replace(" ", "").replace("_", ""): col for col in df.columns}
+    
+    # Search for latitude variations
+    lat_patterns = ["latitude", "lat"]
+    lat_col = None
+    for pattern in lat_patterns:
+        lat_col = next((orig for norm, orig in normalized.items() if pattern in norm), None)
+        if lat_col:
+            break
+    
+    # Search for longitude variations
+    lon_patterns = ["longitude", "long", "lon", "lng"]
+    lon_col = None
+    for pattern in lon_patterns:
+        lon_col = next((orig for norm, orig in normalized.items() if pattern in norm), None)
+        if lon_col:
+            break
+    
     return lat_col, lon_col
 
-def read_geolocations_from_excel(file) -> pd.DataFrame:
+def read_geolocations_from_file(file) -> pd.DataFrame:
     """
-    Read excel file and return dataframe with normalized lat/lon columns named 'lat' and 'lon'.
+    Read CSV or Excel file and return dataframe with normalized lat/lon columns named 'lat' and 'lon'.
+    Supports both .csv and .xlsx/.xls files.
+    Case-insensitive column detection for latitude/longitude variations.
     If missing, raises ValueError.
     """
-    df = pd.read_excel(file)
+    # Get file extension
+    file_name = file.name if hasattr(file, 'name') else str(file)
+    file_ext = file_name.lower().split('.')[-1]
+    
+    # Read file based on extension
+    try:
+        if file_ext == 'csv':
+            df = pd.read_csv(file)
+        elif file_ext in ['xlsx', 'xls']:
+            df = pd.read_excel(file)
+        else:
+            raise ValueError(f"Unsupported file format: .{file_ext}. Please upload CSV or Excel files.")
+    except Exception as e:
+        raise ValueError(f"Error reading file: {str(e)}")
+    
+    # Find lat/lon columns
     lat_col, lon_col = find_lat_lon_columns(df)
+    
     if not lat_col or not lon_col:
-        raise ValueError("The Excel file must contain latitude and longitude columns (e.g., 'Latitude', 'Longitude').")
+        available_cols = ", ".join(df.columns.tolist())
+        raise ValueError(
+            f"Could not find latitude and longitude columns in the file.\n"
+            f"Available columns: {available_cols}\n"
+            f"Please ensure your file has columns like 'Latitude'/'Lat' and 'Longitude'/'Lon'/'Long'."
+        )
+    
     df2 = df.copy()
     df2 = df2.rename(columns={lat_col: "lat", lon_col: "lon"})
-    # drop rows with missing coords
+    
+    # Convert to numeric, coercing errors
+    df2["lat"] = pd.to_numeric(df2["lat"], errors='coerce')
+    df2["lon"] = pd.to_numeric(df2["lon"], errors='coerce')
+    
+    # Drop rows with missing coords
+    initial_count = len(df2)
     df2 = df2.dropna(subset=["lat", "lon"]).reset_index(drop=True)
+    dropped_count = initial_count - len(df2)
+    
+    if dropped_count > 0:
+        print(f"Note: Dropped {dropped_count} rows with invalid or missing coordinates.")
+    
+    if len(df2) == 0:
+        raise ValueError("No valid coordinate data found in the file after cleaning.")
+    
     return df2
 
 def parse_coords_input(coords: str) -> Tuple[Optional[float], Optional[float]]:
@@ -274,6 +328,7 @@ def add_colored_points_layer(map_obj, df: pd.DataFrame, lat_col: str, lon_col: s
                              bucket_labels: List[str], layer_name="Points by Distance"):
     """
     Add circle markers to map, colored by bucket index. Assumes bucket_idxs length matches df.
+    Returns a dictionary with bucket counts for display.
     """
     layer = FeatureGroup(name=layer_name, show=True)
 
@@ -300,6 +355,14 @@ def add_colored_points_layer(map_obj, df: pd.DataFrame, lat_col: str, lon_col: s
         ).add_to(layer)
 
     layer.add_to(map_obj)
+    
+    # Calculate bucket counts
+    bucket_counts = {}
+    for i in range(len(bucket_labels)):
+        count = np.sum(bucket_idxs == i)
+        bucket_counts[i] = count
+    
+    return bucket_counts
 
 def add_simple_points_layer(map_obj, geolocations: List[Tuple[float,float]], color="red", layer_name="Pickup Points"):
     layer = FeatureGroup(name=layer_name, show=True)
@@ -332,7 +395,10 @@ def create_flexible_map(
     """
     Build folium map with options. geolocations_df expected to have 'lat' and 'lon'.
     If office_marker is provided AND map_type == 'points', points will be colored by distance buckets.
+    Returns tuple: (map_object, bucket_stats_dict or None)
     """
+    bucket_stats = None
+    
     # Determine start location
     if geolocations_df is not None and not geolocations_df.empty:
         start_location = (float(geolocations_df.iloc[0]["lat"]), float(geolocations_df.iloc[0]["lon"]))
@@ -355,6 +421,19 @@ def create_flexible_map(
             coords = geolocations_df[["lat", "lon"]].values.tolist()
             HeatMap(coords, radius=heat_radius, blur=heat_blur, max_intensity=heat_max_intensity).add_to(layer)
             layer.add_to(m)
+            
+            # Add heatmap legend
+            heatmap_legend_html = build_heatmap_legend_html()
+            m.get_root().html.add_child(folium.Element(heatmap_legend_html))
+            
+            # Add office marker and concentric circles if office is selected
+            if office_marker:
+                office_lat = office_marker["lat"]
+                office_lon = office_marker["lon"]
+                radii_m = office_marker.get("radii", [10000, 20000, 30000])
+                add_concentric_circles(m, office_lat, office_lon, radii_meters=radii_m, 
+                                     label=office_marker.get("label","Office"),
+                                     layer_name=office_marker.get("layer_name", "Office Range"))
         else:
             # Points branch
             # If office provided, color points by distance buckets; otherwise simple points
@@ -381,8 +460,15 @@ def create_flexible_map(
                 add_concentric_circles(m, office_lat, office_lon, radii_meters=radii_m, label=office_marker.get("label","Office"))
 
                 # add points colored by bucket
-                add_colored_points_layer(m, geolocations_df, "lat", "lon", colors, bucket_idxs, bucket_labels,
+                bucket_counts = add_colored_points_layer(m, geolocations_df, "lat", "lon", colors, bucket_idxs, bucket_labels,
                                          layer_name="Pickup Points (by distance bucket)")
+                
+                # Store bucket statistics for return
+                bucket_stats = {
+                    "labels": bucket_labels,
+                    "colors": colors,
+                    "counts": bucket_counts
+                }
 
                 # also add a small legend (simple html)
                 legend_html = build_legend_html(bucket_labels, colors, title="Distance buckets")
@@ -413,7 +499,7 @@ def create_flexible_map(
         )
 
     folium.LayerControl(collapsed=True).add_to(m)
-    return m
+    return m, bucket_stats
 
 def build_legend_html(labels: List[str], colors: List[str], title="Legend"):
     """
@@ -445,26 +531,70 @@ def build_legend_html(labels: List[str], colors: List[str], title="Legend"):
     """
     return html
 
+def build_heatmap_legend_html(title="Heatmap Intensity"):
+    """
+    Build a gradient legend for heatmap showing intensity scale.
+    """
+    html = f"""
+    <div style="
+        position: fixed;
+        bottom: 50px;
+        left: 10px;
+        z-index: 9999;
+        background:white;
+        padding:10px 12px;
+        border-radius:4px;
+        box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+        font-family: Arial, sans-serif;
+    ">
+        <strong style="display:block; margin-bottom:8px; font-size:13px;">{title}</strong>
+        <div style="display:flex; align-items:center; margin-bottom:4px;">
+            <div style="font-size:11px; width:40px;">High</div>
+            <div style="width:100px; height:15px; background: linear-gradient(to right, 
+                rgba(0,0,255,0.8), rgba(0,255,255,0.8), rgba(0,255,0,0.8), 
+                rgba(255,255,0,0.8), rgba(255,0,0,0.8)); 
+                border:1px solid #000;"></div>
+            <div style="font-size:11px; width:40px; text-align:right;">Low</div>
+        </div>
+        <div style="font-size:10px; color:#666; margin-top:6px;">
+            Darker/Redder = More points
+        </div>
+    </div>
+    """
+    return html
+
 # ----------------------------- Streamlit UI (uses modular functions above) -----------------------------
 
 def main():
     st.set_page_config(page_title="Metro Heatmap Viewer", layout="wide")
-    st.title("📍 Metro Station & Pickup Visualizer (Modular, Fast)")
+    st.title("📍 Metro Station & Pickup Visualizer")
 
     # -- File upload --
-    excel_file = st.file_uploader("📄 Upload Excel File (with latitude & longitude columns)", type=["xlsx"])
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        zoom = st.slider("Zoom Level", 5, 20, 12)
-    with col2:
-        heat_radius = st.slider("Heatmap Radius", 1, 50, 20)
-    with col3:
-        heat_blur = st.slider("Heatmap Blur", 1, 50, 17)
-
-    heat_max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
+    uploaded_file = st.file_uploader(
+        "📄 Upload File (CSV or Excel with latitude & longitude columns)", 
+        type=["csv", "xlsx", "xls"],
+        help="Supports CSV, Excel (.xlsx, .xls) with columns like: Latitude/Lat, Longitude/Lon/Long"
+    )
 
     map_type = st.radio("Select Map Type", ["Heatmap", "Points"], horizontal=True)
+
+    # Only show heatmap configuration when heatmap is selected
+    if map_type == "Heatmap":
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            heat_radius = st.slider("Heatmap Radius", 1, 50, 20)
+        with col2:
+            heat_blur = st.slider("Heatmap Blur", 1, 50, 17)
+        with col3:
+            heat_max_intensity = st.slider("Max Heat Intensity", 10, 500, 100)
+    else:
+        # Default values when not in heatmap mode
+        heat_radius = 20
+        heat_blur = 17
+        heat_max_intensity = 100
+    
+    # Default zoom level
+    zoom = 12
 
     # Metro options
     st.markdown("### 🚇 Optional: Add Metro Lines")
@@ -488,13 +618,22 @@ def main():
 
     # Data loading
     geolocations_df = None
-    if excel_file:
+    if uploaded_file:
         try:
-            df_read = read_geolocations_from_excel(excel_file)
+            df_read = read_geolocations_from_file(uploaded_file)
             geolocations_df = df_read
-            st.success(f"Loaded {len(geolocations_df)} records from uploaded Excel.")
+            st.success(f"✅ Loaded {len(geolocations_df)} records from {uploaded_file.name}")
+            
+            # Show a preview of detected columns
+            with st.expander("📋 Preview Data"):
+                st.write(f"**Detected Columns:** Latitude & Longitude")
+                st.dataframe(geolocations_df.head(10), use_container_width=True)
+                
         except ValueError as e:
-            st.error(str(e))
+            st.error(f"❌ {str(e)}")
+            geolocations_df = None
+        except Exception as e:
+            st.error(f"❌ Unexpected error: {str(e)}")
             geolocations_df = None
 
     # Metro groups
@@ -530,7 +669,7 @@ def main():
 
     # Render map
     if (geolocations_df is not None and not geolocations_df.empty) or metro_groups or office_marker or hyd_files:
-        result_map = create_flexible_map(
+        result_map, bucket_stats = create_flexible_map(
             geolocations_df=geolocations_df,
             metro_groups=metro_groups,
             zoom_start=zoom,
@@ -541,6 +680,44 @@ def main():
             hyd_files=hyd_files,
             map_type=map_type.lower()
         )
+        
+        # Display statistics table if we have bucket data
+        if bucket_stats is not None:
+            st.markdown("### 📊 Distance Distribution Summary")
+            
+            # Create dataframe for display
+            stats_data = []
+            total_points = 0
+            for i, label in enumerate(bucket_stats["labels"]):
+                count = bucket_stats["counts"].get(i, 0)
+                total_points += count
+                stats_data.append({
+                    "Distance Range": label,
+                    "Color": bucket_stats["colors"][i],
+                    "Count": count
+                })
+            
+            stats_df = pd.DataFrame(stats_data)
+            
+            # Add percentage column
+            if total_points > 0:
+                stats_df["Percentage"] = (stats_df["Count"] / total_points * 100).round(2).astype(str) + "%"
+            else:
+                stats_df["Percentage"] = "0.00%"
+            
+            # Display with color indicators
+            st.dataframe(
+                stats_df.style.apply(
+                    lambda row: [f'background-color: {row["Color"]}; color: white' if idx == 1 else '' 
+                                for idx in range(len(row))], 
+                    axis=1
+                ),
+                use_container_width=True,
+                hide_index=True
+            )
+            
+            st.metric("Total Points", total_points)
+        
         if result_map:
             st_folium(result_map, width="100%", height=900)
     else:
