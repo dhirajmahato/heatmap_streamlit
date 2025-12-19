@@ -549,12 +549,12 @@ def build_heatmap_legend_html(title="Heatmap Intensity"):
     ">
         <strong style="display:block; margin-bottom:8px; font-size:13px;">{title}</strong>
         <div style="display:flex; align-items:center; margin-bottom:4px;">
-            <div style="font-size:11px; width:40px;">High</div>
+            <div style="font-size:11px; width:40px;">Low</div>
             <div style="width:100px; height:15px; background: linear-gradient(to right, 
                 rgba(0,0,255,0.8), rgba(0,255,255,0.8), rgba(0,255,0,0.8), 
                 rgba(255,255,0,0.8), rgba(255,0,0,0.8)); 
                 border:1px solid #000;"></div>
-            <div style="font-size:11px; width:40px; text-align:right;">Low</div>
+            <div style="font-size:11px; width:40px; text-align:right;">High</div>
         </div>
         <div style="font-size:10px; color:#666; margin-top:6px;">
             Darker/Redder = More points
@@ -725,3 +725,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
