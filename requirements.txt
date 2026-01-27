@@ -4,3 +4,4 @@ openpyxl
 shapely
 folium
 streamlit-folium
+altair<5
