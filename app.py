@@ -264,8 +264,28 @@ def assign_stations_to_closest_line(metro_lines, stations):
 def add_metro_layers(m, metro_groups):
     for group in metro_groups:
         layer = FeatureGroup(name=group["name"], show=True)
-        folium.PolyLine(group["line"], color=group["color"], weight=4, opacity=1.0).add_to(layer)
+
+        # Add metro line
+        folium.PolyLine(
+            group["line"],
+            color=group["color"],
+            weight=4,
+            opacity=1.0
+        ).add_to(layer)
+
+        # Add stations
+        for station in group["stations"]:
+            folium.CircleMarker(
+                location=station["location"],
+                radius=5,
+                color="black",
+                fill=True,
+                fill_color=group["color"],
+                fill_opacity=0.8
+            ).add_to(layer)
+
         layer.add_to(m)
+
 
 def add_hyderabad_metro(map_obj, lines_file, stations_file):
     df_lines = pd.read_csv(lines_file)
