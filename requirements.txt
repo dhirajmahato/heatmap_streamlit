@@ -3,6 +3,6 @@ pandas
 openpyxl
 shapely
 streamlit==1.19.0
-streamlit-folium==0.26.1
+streamlit-folium==0.20.0
 folium==0.14.0
 altair==4.2.2
