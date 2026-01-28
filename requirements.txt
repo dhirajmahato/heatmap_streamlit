@@ -2,6 +2,7 @@ leafmap
 pandas
 openpyxl
 shapely
-folium
-streamlit-folium
-altair<5
+streamlit==1.19.0
+streamlit-folium==0.26.1
+folium==0.14.0
+altair==4.2.2
