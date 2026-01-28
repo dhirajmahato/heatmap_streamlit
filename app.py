@@ -739,11 +739,12 @@ def main():
             st.metric("Total Points", total_points)
         
         if result_map:
-            st_folium(result_map, width="1200", height=900)
+            st_folium(result_map, width=1200, height=900)
     else:
         st.info("📂 Please upload data or enable metro/office markers to view the map.")
 
 if __name__ == "__main__":
     main()
+
 
 
