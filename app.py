@@ -410,7 +410,7 @@ def create_flexible_map(
     office_marker=None,
     hyd_files=None,
     map_type="heatmap",
-    max_points_for_heatmap=20000  # threshold: if many points, prefer heatmap
+    max_points_for_heatmap=11000  # threshold: if many points, prefer heatmap
 ):
     """
     Build folium map with options. geolocations_df expected to have 'lat' and 'lon'.
@@ -739,12 +739,13 @@ def main():
             st.metric("Total Points", total_points)
         
         if result_map:
-            st_folium(result_map, width=1200, height=900)
+            st_folium(result_map, width=1800, height=900)
     else:
         st.info("📂 Please upload data or enable metro/office markers to view the map.")
 
 if __name__ == "__main__":
     main()
+
 
 
 
