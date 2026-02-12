@@ -410,7 +410,7 @@ def create_flexible_map(
     office_marker=None,
     hyd_files=None,
     map_type="heatmap",
-    max_points_for_heatmap=11000  # threshold: if many points, prefer heatmap
+    max_points_for_heatmap=41000  # threshold: if many points, prefer heatmap
 ):
     """
     Build folium map with options. geolocations_df expected to have 'lat' and 'lon'.
@@ -745,6 +745,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
